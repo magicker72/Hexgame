@@ -1,11 +1,14 @@
-<html>
-
-<head>
-    <link rel="stylesheet" type="text/css" href="hex-style.css" />
-    <title>Hexgame</title>
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html><head><meta http-equiv="Content-Type" content="text/html">
+<meta name="google" content="notranslate">
+<meta http-equiv="Cache-control" content="no-cache">
+    <link rel="stylesheet" type="text/css" href="/hex/style.css">
+    <link rel="stylesheet" type="text/css" href="/hex/hex-style.css">
+    <title>העקסשפּיל</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <script src=//cdnjs.cloudflare.com/ajax/libs/seedrandom/2.3.10/seedrandom.min.js></script>
-    <script src="hexgame.js"></script>
+    <script src="/hex/seedrandom.min.js"></script>
+    <script charset="UTF-8" src="/hex/hexgame.js"></script>
 </head>
 
 <body>
@@ -14,8 +17,8 @@
             <div id="left">
                 <div id="messageBox">
                 </div>
-                <div id="entry">
-                    <span id="entryContent"></span>
+                <div id="entry" style="direction:rtl">
+                    <span id="entryContent" class="invalid"></span>
                 </div>
                 <div id="gridContainer">
                     <ul id="grid" class="clear">
@@ -23,47 +26,77 @@
                             <div class="hexagon fake-hexagon"></div>
                         </li>
                         <li>
-                            <div class="hexagon outer-hexagon"></div>
+                            <div class="hexagon outer-hexagon">א</div>
                         </li>
                         <li>
-                            <div class="hexagon outer-hexagon"></div>
+                            <div class="hexagon outer-hexagon">ב</div>
                         </li>
                         <li>
-                            <div class="hexagon outer-hexagon"></div>
+                            <div class="hexagon outer-hexagon">ג</div>
                         </li>
                         <li>
-                            <div class="hexagon central-hexagon"></div>
+                            <div class="hexagon central-hexagon">ד</div>
                         </li>
                         <li>
-                            <div class="hexagon outer-hexagon"></div>
+                            <div class="hexagon outer-hexagon">ה</div>
                         </li>
                         <li>
                             <div class="hexagon fake-hexagon"></div>
                         </li>
                         <li>
-                            <div class="hexagon outer-hexagon"></div>
+                            <div class="hexagon outer-hexagon">ו</div>
                         </li>
                         <li>
-                            <div class="hexagon outer-hexagon"></div>
+                            <div class="hexagon outer-hexagon">ז</div>
                         </li>
                     </ul>
                 </div>
                 <div id="controls">
-                    <div class="button" id="deleteButton">Delete</div>
-                    <div class="button" id="shuffleButton">Shuffle</div>
-                    <div class="button" id="enterButton">Enter</div>
+                    <div class="button" id="deleteButton">אױסמעקן</div>
+                    <div class="button" id="shuffleButton">אױסמישן</div>
+                    <div class="button" id="enterButton">פֿאַרשרײַבן</div>
                 </div>
+				<h1 style="text-align:center">העקסשפּיל</h1>
             </div>
             <div id="right">
-                <div>Points: <span id="points">0</span></div>
-                <div>Number of words found: <span id="wordCount">0</span></div>
-                <br />
-                <div id="foundWords"></div>
+				<div style="text-align:right">Adapted to Yiddish from <a href="https://github.com/s-williams/Hexgame">here</a>,<br> licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></div><br><br>
+				<div id="todaysGameNumber" style="text-align:right;direction:rtl">הײַנט איז שפּיל #</div>
+				<div id="whichGameIsThis" style="text-align:right;direction:rtl;display:none">דאָס איז שפּיל #</div><form action="/hex/" style="text-align:right;direction:rtl;font-size:1em"><label for="whichGame" style="font-size:1em">שפּילן אַן אַנדער שפּיל <select name="whichGame" id="whichGame"></select>  <input type="submit" value="שפּילן"></form><br><br>
+				<button id="yesterdayButton" style="border-radius:8px;float:right;text-align:right;direction:rtl;font-size:1em">זען די נעכטיקע װערטער</button><br>
+				<div id="myModal" class="modal"><div class="roundedcorners" style="text-align:right"><span class="close">&times;</span><br><span style="text-align:right;direction:rtl">‮די נעכטיקע װערטער:<hr></span><div class="modal-content" style="text-align:right"><ul id="yesterdayGame" style="direction:rtl"></ul></div></div></div>
+				<div style="text-align:right;direction:rtl">פּונקטן: <span id="points">0</span>/<span id="maxPointsDiv">0</span></div>
+                <div style="text-align:right;direction:rtl">װערטער געפֿונען: <span id="wordCount">0</span>/<span id="maxWordsDiv">0</span></div>
+                <hr>
+                <div id="foundWords" style="text-align:right;direction:rtl"></div>
             </div>
         </div>
     </div>
-    </div>
 
-</body>
+<script>
+	// Get the modal
+	var modal = document.getElementById("myModal");
 
-</html>
+	// Get the button that opens the modal
+	var btn = document.getElementById("yesterdayButton");
+
+	// Get the <span> element that closes the modal
+	var span = document.getElementsByClassName("close")[0];
+
+	// When the user clicks the button, open the modal 
+	btn.onclick = function() {
+		modal.style.display = "block";
+	}
+
+	// When the user clicks on <span> (x), close the modal
+	span.onclick = function() {
+		modal.style.display = "none";
+	}
+
+	// When the user clicks anywhere outside of the modal, close it
+	window.onclick = function(event) {
+		if (event.target == modal) {
+			modal.style.display = "none";
+		}
+	}
+</script>
+</body></html>

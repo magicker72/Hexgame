@@ -1,6 +1,10 @@
 let pangramLetters = [];
 let middleLetter = "";
 
+let pangramOld = '';
+let middleLetterOld = '';
+let pangramLettersOld = [];
+
 let allHexagons = [];
 let outerHexagons = [];
 let centralHexagon = null;
@@ -10,9 +14,59 @@ let messageBox = null;
 let foundWords = null;
 let points = null;
 let wordCount = null;
+let setup = true;
+let todaysGame = 0;
+let shaking = false;
+
+let currentTypedKey = '';
+let hebChars = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'װ', 'ױ', 'ז', 'ח', 'ט', 'י', 'ײ', 'כ', 'ך', 'ל', 'מ', 'ם', 'נ', 'ן', 'ס', 'ע', 'פ', 'ף', 'צ', 'ץ', 'ק', 'ר', 'ש', 'ת'];
+let hebCharsExtended = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'װ', 'ױ', 'ז', 'ח', 'ט', 'י', 'ײ', 'כ', 'ך', 'ל', 'מ', 'ם', 'נ', 'ן', 'ס', 'ע', 'פ', 'ף', 'צ', 'ץ', 'ק', 'ר', 'ש', 'ת', 'אָ','אַ','בֿ','וּ','יִ','כּ','פּ','פֿ','שׂ','תּ','ַ','ָ','ֿ','ּ','ׂ','ײַ','יִ','ײַ','שׂ','אַ','אָ','וּ','כּ','פּ','תּ','בֿ','פֿ'];
 
 let dictionary = [];
 let foundWordsList = [];
+let foundWordsFinalsList = [];
+let maxPoints = 0;
+let maxWords = 0;
+let globalPangram = '';
+let globalMid = '';
+let saveGameKey = [];
+
+let yesterdayLink = '';
+
+var charsToCombine = [
+	['אַ', 'אַ'],
+	['אָ', 'אָ'],
+	['בֿ', 'בֿ'],
+	['וּ', 'ו'],
+	['יִ', 'י'],
+	['ײַ', 'ײַ'],
+	['כּ', 'כּ'],
+	['ך', 'כ'],
+	['ם', 'מ'],
+	['ן', 'נ'],
+	['פּ', 'פּ'],
+	['פֿ', 'פֿ'],
+	['ף', 'פֿ'],
+	['ץ', 'צ'],
+	['שׂ', 'שׂ'],
+	['תּ', 'תּ']
+];
+
+var charsToSeparate = [
+	['װ','וו'],
+	['ײ','יי'],
+	['ױ','וי'],
+	['אַ','א'],
+	['אָ','א'],
+	['בֿ','בֿ'],
+	['ײַ','יי'],
+	['כּ','כּ'],
+	['פּ','פּ'],
+	['פֿ','פֿ'],
+	['שׂ','שׂ'],
+	['תּ','תּ'],
+];
+
 /**
  * sets up game
  */
@@ -24,13 +78,21 @@ const start = () => {
     entryContent = document.querySelector("#entryContent");
     messageBox = document.querySelector("#messageBox");
     foundWords = document.querySelector("#foundWords");
+	maxPointsDiv = document.querySelector("#maxPointsDiv");
+	maxWordsDiv = document.querySelector("#maxWordsDiv");
     points = document.querySelector("#points");
     wordCount = document.querySelector("#wordCount");
+	yesterdayGame = document.querySelector("#yesterdayGame");
+	todaysGameNumber = document.querySelector("#todaysGameNumber");
+	whichGame = document.querySelector("#whichGame");
+	whichGameIsThis = document.querySelector("#whichGameIsThis");
 
     document.querySelector("#deleteButton").addEventListener("click", deleteLetter);
     document.querySelector("#shuffleButton").addEventListener("click", shuffle);
     document.querySelector("#enterButton").addEventListener("click", enter);
     document.addEventListener("keydown", typeLetter);
+	//document.addEventListener("keydown", typeLetterRestricted);
+	//document.addEventListener("keypress", checkKeyPress);
 
     allHexagons.forEach((ele) => {
         ele.addEventListener("click", addLetter);
@@ -38,42 +100,156 @@ const start = () => {
 
     // seed the Math random function based on the current date
     // https://github.com/davidbau/seedrandom
+	const epoch = new Date("02/16/2022");
     const today = new Date();
+	today.setHours(today.getHours()-4);
+	todaysGame = Math.floor((today.getTime()-epoch.getTime())/(1000*60*60*24));
+	
+	// set up "play another game"
+	todaysGameNumber.innerText += todaysGame;
+	for (let i = 1; i <= todaysGame; i++) {
+		let option = document.createElement("option");
+		option.innerText += i.toString();
+		whichGame.appendChild(option);
+	}
     Math.seedrandom("" + today.getFullYear() + today.getMonth() + today.getDate());
+	// Math.seedrandom();
 
     // set up game
     const urlParams = new URLSearchParams(window.location.search);
+	if (urlParams.has("whichGame")) {
+		todaysGame = urlParams.get("whichGame");
+		whichGameIsThis.innerText += todaysGame;
+		whichGameIsThis.style.display = "block";
+	}
     if (urlParams.has("pangram")) {
         if (urlParams.has("mid")) {
-            setUpWithWord(urlParams.get("pangram").toUpperCase(), urlParams.get("mid").toUpperCase());
+            setUpWithWord(combineCharacters(urlParams.get("pangram")), combineCharacters(urlParams.get("mid")));
         } else {
-            setUpWithWord(urlParams.get("pangram").toUpperCase());
+            setUpWithWord(combineCharacters(urlParams.get("pangram")));
         }
-    } else {
-        fetch("sevenletterwords.txt").then((response) => {
+		saveGameKey = [globalPangram, globalMid];
+				
+		// load saved game
+		var savedgame = JSON.parse(window.localStorage.getItem(saveGameKey));
+		if (savedgame == null) window.localStorage.setItem(saveGameKey,JSON.stringify(foundWordsList));
+		else {
+			for (i in savedgame) correctWord(savedgame[i]);
+		};
+		setup = false;
+	} else {
+        fetch("./sevenletterwords_curated.txt?"+todaysGame).then((response) => {
             return response.text().then((file) => {
                 const lines = file.split(/\n/g);
                 const count = (lines || []).length;
 
-                const no = Math.floor(Math.random() * count);
-                const pangram = lines[no].trim();
+                // const no = Math.floor(Math.random() * count);
+                let todaysGameData = lines[todaysGame%lines.length].trim().split(',');
+				globalPangram = todaysGameData[0];
+				globalMid = todaysGameData[1];
 
-                console.log(pangram);
+                // console.log(pangram);
+				// console.log(middleLetter);
 
-                setUpWithWord(pangram);
+                // setUpWithWord(pangram,mid);
+				setUpWithWord(globalPangram,globalMid);
+				
+				saveGameKey = [globalPangram, globalMid];
+				
+				// yesterday's pangram
+				const yesterday = new Date(today);
+				yesterday.setDate(yesterday.getDate()-1);
+				Math.seedrandom("" + yesterday.getFullYear() + yesterday.getMonth() + yesterday.getDate());
+				let noOld = Math.floor(Math.random() * count);
+				//pangramOld = lines[noOld].trim();
+				let yesterdaysGameData = lines[((todaysGame-1%lines.length)+lines.length)%lines.length].trim().split(',');
+				//console.log(yesterdaysGameData);
+				pangramOld = yesterdaysGameData[0];
+				middleLetterOld = yesterdaysGameData[1];
+				getOldMiddleLetter(pangramOld);
+				
+				// load saved game
+				var savedgame = JSON.parse(window.localStorage.getItem(saveGameKey));
+				if (savedgame == null) window.localStorage.setItem(saveGameKey,JSON.stringify(foundWordsList));
+				else {
+					for (i in savedgame) correctWord(savedgame[i]);
+				};
+				setup = false;
             });
         });
     }
 
-    fetch("dictionary.txt").then((response) => {
+    fetch("dictionaryyiddish_curated.txt?"+todaysGame).then((response) => {
         return response.text().then((file) => {
-            dictionary = file.split(/\r\n/g);
+			dictionary = file.split(/\r\n/g);
+			let Calculation = maxPointsCalculation(dictionary,pangramLetters,middleLetter);
+			maxPoints = Calculation[0];
+			maxWords = Calculation[1];
+			//console.log(Calculation[2]);
+			maxPointsDiv.innerText = maxPoints;
+			maxWordsDiv.innerText = maxWords;
             if (urlParams.has("pangram")) {
                 dictionary.push(urlParams.get("pangram"));
             }
+			//middleLetterOld = getOldMiddleLetter(pangramOld);
+			// yesterdayLink.innerText = "שפּיל די נעכטיקע שפּיל".link("https://jiconway.com/hex/?pangram="+pangramOld+"&mid="+middleLetterOld);
+			// console.log(pangramOld + ',' + middleLetterOld);
+			// console.log(maxPointsCalculation(dictionary,pangramLettersOld, middleLetterOld)[2]);
+			let yesterdaysWords = maxPointsCalculation(dictionary,pangramLettersOld, middleLetterOld)[2];
+			let yesterdaySavedGameKey = [pangramOld, middleLetterOld];
+			var yesterdaysSavedGame = JSON.parse(window.localStorage.getItem(yesterdaySavedGameKey));
+			let playedYesterday = true;
+			if (yesterdaysSavedGame == null) playedYesterday = false;
+			let yesterdaysFoundWords = [];
+			if (yesterdaysSavedGame) {
+				for (i in yesterdaysSavedGame) yesterdaysFoundWords.push(yesterdaysSavedGame[i]);
+			}
+			yesterdaysWords.sort((a,b) => (separateCharacters(a) > separateCharacters(b)) ? 1 : ((separateCharacters(b) > separateCharacters(a)) ? -1 : 0));
+			for (word in yesterdaysWords) {
+				let li = document.createElement("li");
+				li.innerText += '‮'+addFinals(yesterdaysWords[word]);
+				if (playedYesterday && yesterdaysFoundWords.includes(yesterdaysWords[word])) {
+					li.innerText += ' \u2713'
+				}
+				yesterdayGame.appendChild(li);
+			};
+			//yesterdayGame.style.display = 'none';
         });
     });
 };
+
+
+/**
+ * Takes a Yiddish word and makes all the character precombined
+ */
+function combineCharacters(word) {
+	for (replacement in charsToCombine) {
+		word = word.replaceAll(charsToCombine[replacement][0], charsToCombine[replacement][1]);
+	}
+	return word
+}
+
+/**
+ * Takes a Yiddish word and makes all the character separated
+ */
+function separateCharacters(word) {
+	for (replacement in charsToSeparate) {
+		word = word.replaceAll(charsToSeparate[replacement][0], charsToSeparate[replacement][1]);
+	}
+	return word
+}
+
+/**
+ * Adds final letters
+ */
+function addFinals(word) {
+	if (word.endsWith('כ')) { word = word.slice(0,-1) + 'ך';};
+if (word.endsWith('מ')) { word = word.slice(0,-1) + 'ם';};
+	if (word.endsWith('נ')) { word = word.slice(0,-1) + 'ן';};
+	if (word.endsWith('פֿ')) { word = word.slice(0,-1) + 'ף';};
+	if (word.endsWith('צ')) { word = word.slice(0,-1) + 'ץ';};
+	return word
+}
 
 /**
  * Takes a seven letter word and processes it to set up the game
@@ -98,7 +274,71 @@ const setUpWithWord = (pangram, mid) => {
         outerHexagons[i].innerText = pangramLetters[i];
     }
     centralHexagon.innerText = middleLetter;
+	//globalPangram = pangram;
+	//globalMid = middleLetter;
 }
+
+/**
+ * Gets yesterday's middle letter
+ */
+function getOldMiddleLetter(pangram) {
+    // remove duplicate letters
+    for (let i = 0; i < pangram.length; i++) {
+        if (!pangramLettersOld.includes(pangram[i].toUpperCase())) {
+            pangramLettersOld.push(pangram[i].toUpperCase());
+        }
+    }
+	const today = new Date();
+	today.setHours(today.getHours()-4);
+	const yesterday = new Date(today);
+	yesterday.setDate(yesterday.getDate()-1);
+    Math.seedrandom("" + yesterday.getFullYear() + yesterday.getMonth() + yesterday.getDate());
+	Math.random();
+	for (let i = pangramLettersOld.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pangramLettersOld[i], pangramLettersOld[j]] = [pangramLettersOld[j], pangramLettersOld[i]];
+    }
+    return pangramLettersOld[Math.floor(Math.random() * pangramLettersOld.length)]
+}
+
+/**
+ * Calculates max points
+ */
+function maxPointsCalculation(dictionary,pangramLetters,middleLetter) {
+	let point = 0;
+	let count = 0;
+	let validwords = [];
+	for (i in dictionary) {
+		let isValid = true;
+		let w = dictionary[i];
+		if (w.length < 4 || !w.includes(middleLetter)) {
+			isValid = false;
+		}
+		if (isValid) {
+			for (let i = 0; i < w.length; i++) {
+                if (!(pangramLetters.includes(w[i]) || w[i] === middleLetter)) {
+                    isValid = false;
+                    break;
+                }
+			}
+		}
+		if (isValid) {
+			count++;
+			validwords.push(w);
+			if (w.length == 4) { point++; }
+			if (w.length > 4) { point += w.length; }
+			let isPangram = true;
+			for (let i = 0; i < pangramLetters.length; i++) {
+				if (!w.includes(pangramLetters[i])) {
+					isPangram = false;
+					break;
+				}
+			}
+			if (isPangram) { point += 7; }
+		}
+	}
+	return [point, count, validwords]
+}	
 
 /**
  * Shuffles the letters around in the outer hexagons
@@ -127,13 +367,91 @@ const addLetter = (event) => {
 const typeLetter = (event) => {
     if (!event.metaKey) {
         event.preventDefault();
-        if (event.code === "Backspace" || event.code === "Delete") deleteLetter();
-        else if (event.code === "Enter" || event.code === "NumpadEnter") enter();
-        else if (event.code === "Space") shuffle();
-        else if (event.key.length === 1) {
-            entryContent.innerText += event.key.toUpperCase();
-            validateLetters();
-        }
+		if (!shaking) {
+			if (event.code === "Backspace" || event.code === "Delete") deleteLetter();
+			else if (event.code === "Enter" || event.code === "NumpadEnter") enter();
+			else if (event.code === "Space") shuffle();
+			else if (hebCharsExtended.includes(event.key)) {
+				entryContent.innerText += combineCharacters(event.key);
+				validateLetters();
+			}
+			else if (event.key.length === 12) {
+				let KTE = '';
+				let done = false;
+				if (event.code === 'KeyP' || event.keyCode === 35) {
+					KTE = 'פּ';
+					done = true;
+				}
+				if (!done && event.code === 'KeyA') {
+					KTE = 'אַ';
+					done = true;
+				}
+				if (!done && event.code === 'KeyO') {
+					KTE = 'אָ';
+					done = true;
+				}
+				if (!done && event.code === 'keyB' && event.shiftKey) {
+					KTE = 'בֿ';
+					done = true;
+				}
+				if (!done && event.code === 'KeyV' && event.shiftKey) {
+					KTE = 'ו';
+					done = true;
+				}
+				if (!done && event.code === 'BracketLeft') {
+					KTE = 'י';
+					done = true;
+				}
+				if (!done && event.code === 'KeyY') {
+					KTE = 'ײַ';
+					done = true;
+				}
+				if (!done && event.code === 'KeyK' && event.shiftKey) {
+					KTE = 'כּ';
+					done = true;
+				}
+				if (!done && event.code === 'KeyF') {
+					KTE = 'פֿ';
+					done = true;
+				}
+				if (!done && event.code === 'KeyW' && event.shiftKey) {
+					KTE = 'שׂ';
+					done = true;
+				}
+				if (!done && event.code === 'KeyT' && event.shiftKey) {
+					KTE = 'תּ';
+					done = true;
+				}
+				entryContent.innerText += combineCharacters(KTE);
+				validateLetters()	
+			}
+		}
+		//else {
+		//	console.log('Key '+event.key+' of length '+event.key.length);
+		//	console.log('Keycode '+event.code);
+		//}
+    }
+};
+
+const typeLetterRestricted = (event) => {
+    if (event.code === "Backspace" || event.code === "Delete") deleteLetter();
+}
+
+const checkKeyPress = (event) => {
+    if (!event.metaKey) {
+		event.preventDefault();
+		if (event.code == 'Enter' || event.code === 'NumpadEnter') enter();
+		else if (event.code == 'Space') shuffle();
+		else if (event.key == 'ַ' || event.key == 'ָ' || event.key == 'ֿ' || event.key == 'ּ' || event.key == 'ִ') {
+			currentTypedKey += event.key;
+			entryContent.innerText = entryContent.innerText.slice(0,-1)+combineCharacters(combineCharacters(currentTypedKey));
+			validateLetters();
+		}
+		else if (hebChars.includes(event.key)) {
+			currentTypedKey = event.key;
+			entryContent.innerText += combineCharacters(combineCharacters(currentTypedKey));
+			validateLetters();
+		}
     }
 };
 
@@ -151,9 +469,41 @@ const deleteLetter = () => {
  * Adds valid or invalid class to entered word field
  */
 const validateLetters = () => {
+	let middleLetterOther = addFinals(middleLetter);
+	entryContent.innerText = combineCharacters(entryContent.innerText);
     entryContent.classList.remove("valid");
     entryContent.classList.remove("invalid");
-    if (entryContent.innerText.includes(middleLetter)) {
+	if (entryContent.innerText.includes('ך')) {
+		entryContent.innerText = entryContent.innerText.replaceAll('ך','כ')
+	}
+	if (entryContent.innerText.endsWith('כ')) {
+		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ך';
+	}
+	if (entryContent.innerText.includes('ם')) {
+		entryContent.innerText = entryContent.innerText.replaceAll('ם','מ')
+	}
+	if (entryContent.innerText.endsWith('מ')) {
+		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ם';
+	}
+	if (entryContent.innerText.includes('ן')) {
+		entryContent.innerText = entryContent.innerText.replaceAll('ן','נ')
+	}
+	if (entryContent.innerText.endsWith('נ')) {
+		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ן';
+	}
+	if (entryContent.innerText.includes('ף')) {
+		entryContent.innerText = entryContent.innerText.replaceAll('ף','פֿ')
+	}
+	if (entryContent.innerText.endsWith('פֿ')) {
+		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ף';
+	}
+	if (entryContent.innerText.includes('ץ')) {
+		entryContent.innerText = entryContent.innerText.replaceAll('ץ','צ')
+	}
+	if (entryContent.innerText.endsWith('צ')) {
+		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ץ';
+	}
+	if (entryContent.innerText.includes(middleLetter) || entryContent.innerText.includes(middleLetterOther)) {
         entryContent.classList.add("valid");
     } else {
         entryContent.classList.add("invalid");
@@ -165,39 +515,40 @@ const validateLetters = () => {
  */
 const enter = () => {
     //get word
-    const word = entryContent.innerText;
+    const word = combineCharacters(entryContent.innerText);
     let isValid = true;
 
     //check if word is valid
     if (word.length > 0) {
         if (isValid && word.length < 4) {
             isValid = false;
-            incorrectWord("Too short");
+            incorrectWord("צו קורץ");
         }
         if (isValid && !word.includes(middleLetter)) {
             isValid = false;
-            incorrectWord("Missing centre letter");
+            incorrectWord("פֿעלט צענטראַלן אות");
         }
-        if (isValid && !dictionary.includes(word.toLowerCase())) {
-            isValid = false;
-            incorrectWord("Not in dictionary");
-        }
-        if (isValid && foundWordsList.includes(word)) {
-            isValid = false;
-            incorrectWord("Already found");
-        }
-        if (isValid) {
-            for (let i = 0; i < word.length; i++) {
+		if (isValid) {
+			for (let i = 0; i < word.length; i++) {
                 if (!(pangramLetters.includes(word[i]) || word[i] === middleLetter)) {
                     isValid = false;
-                    incorrectWord("Invalid letters!");
+                    incorrectWord("אומגילטיקע אותיות");
                     break;
                 }
             }
+		}
+        if (isValid && !dictionary.includes(word)) {
+            isValid = false;
+            incorrectWord("נישט אין װערטער־אוצר");
+        }
+        if (isValid && foundWordsList.includes(word)) {
+            isValid = false;
+            incorrectWord("שױן געפֿונען");
         }
         if (isValid) {
-            console.log("correct word");
+            console.log("גוט װאָרט");
             correctWord(word);
+			window.localStorage.setItem(saveGameKey, JSON.stringify(foundWordsList));
         }
     }
 
@@ -210,8 +561,10 @@ const enter = () => {
  */
 const correctWord = (word) => {
     //add word to list
-    foundWords.innerText += word + "\n";
     foundWordsList.push(word);
+	foundWordsFinalsList.push(addFinals(word));
+	foundWordsFinalsList.sort((a,b) => (separateCharacters(a) > separateCharacters(b)) ? 1 : ((separateCharacters(b) > separateCharacters(a)) ? -1 : 0));
+	foundWords.innerText = foundWordsFinalsList.join('\r\n').toString();
 
     //check if pangram
     let isPangram = true;
@@ -224,25 +577,27 @@ const correctWord = (word) => {
 
     //add points
     let currentPoints = parseInt(points.innerText);
-    let newPoints = word.length + 1;
+    let newPoints = word.length;
     if (word.length === 4) newPoints = 1;
-    if (isPangram) newPoints += 7;
+    if (isPangram) newPoints += 8;
     points.innerText = currentPoints + newPoints;
 
     //update number of words found
     wordCount.innerText = foundWordsList.length;
 
     //show positive message
-    if (isPangram) {
-        showGoodMessage("Pangram!");
-    } else if (word.length === 4) {
-        showGoodMessage("Good!");
-    } else if (word.length < 7) {
-        showGoodMessage("Great!");
-    } else {
-        showGoodMessage("Amazing!");
-    }
-
+	if (!setup) {
+		if (isPangram) {
+			let pointsToAdd = parseInt(word.length)+7;
+			showGoodMessage("פּאַנגראַם! +"+pointsToAdd);
+		} else if (word.length === 4) {
+			showGoodMessage("גוט! +1");
+		} else if (word.length < 7) {
+			showGoodMessage("װוּנדערלעך! +"+word.length);
+		} else {
+			showGoodMessage("אױסגעצײכנט! +"+word.length);
+		}
+	}
     //reset entry
     entryContent.innerText = "";
 };
@@ -253,11 +608,13 @@ const correctWord = (word) => {
  */
 const incorrectWord = (error) => {
     entryContent.classList.add("shake");
+	shaking = true;
     messageBox.innerText = error;
     entryContent.addEventListener("animationend", () => {
         entryContent.innerText = "";
         messageBox.innerText = "";
         entryContent.classList.remove("shake");
+		shaking = false;
     });
 };
 
