@@ -138,7 +138,7 @@ const start = () => {
 		};
 		setup = false;
 	} else {
-        fetch("./sevenletterwords_curated.txt?"+todaysGame).then((response) => {
+        fetch("sevenletterwords_curated.txt?"+todaysGame).then((response) => {
             return response.text().then((file) => {
                 const lines = file.split(/\n/g);
                 const count = (lines || []).length;
