@@ -17,6 +17,8 @@ let wordCount = null;
 let setup = true;
 let todaysGame = 0;
 let shaking = false;
+let mobile = false;
+let stealFocusAllowed = true;
 
 let currentTypedKey = '';
 let hebChars = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'װ', 'ױ', 'ז', 'ח', 'ט', 'י', 'ײ', 'כ', 'ך', 'ל', 'מ', 'ם', 'נ', 'ן', 'ס', 'ע', 'פ', 'ף', 'צ', 'ץ', 'ק', 'ר', 'ש', 'ת'];
@@ -90,9 +92,13 @@ const start = () => {
     document.querySelector("#deleteButton").addEventListener("click", deleteLetter);
     document.querySelector("#shuffleButton").addEventListener("click", shuffle);
     document.querySelector("#enterButton").addEventListener("click", enter);
-    document.addEventListener("keydown", typeLetter);
+    document.addEventListener("keyup", typeLetter);
 	//document.addEventListener("keydown", typeLetterRestricted);
 	//document.addEventListener("keypress", checkKeyPress);
+
+
+	//check for mobile users
+	if (detectMob()) mobile = true;
 
     allHexagons.forEach((ele) => {
         ele.addEventListener("click", addLetter);
@@ -217,6 +223,38 @@ const start = () => {
         });
     });
 };
+
+//function to check for mobile user
+function detectMob() {
+    const toMatch = [
+        /Android/i,
+        /webOS/i,
+        /iPhone/i,
+        /iPad/i,
+        /iPod/i,
+        /BlackBerry/i,
+        /Windows Phone/i
+    ];
+    
+    return toMatch.some((toMatchItem) => {
+        return navigator.userAgent.match(toMatchItem);
+    });
+}
+
+//function to blur inputbox if on mobile
+function mobileBlur() {
+	if (mobile) document.getElementById("entryContent").blur();
+}
+
+//keeps focus on textbox
+setInterval(function(){
+	var focusbox;
+	var dropdown;
+	focusbox = document.getElementById("entryContent");
+	dropdown = document.getElementById("whichGame");
+	const elem = document.activeElement;
+	if (elem != dropdown) focusbox.focus();
+});
 
 
 /**
@@ -356,7 +394,7 @@ const shuffle = () => {
  */
 const addLetter = (event) => {
     const letter = event.currentTarget.innerText;
-    entryContent.innerText += letter;
+    entryContent.value += letter;
     validateLetters();
 };
 
@@ -368,69 +406,14 @@ const typeLetter = (event) => {
     if (!event.metaKey) {
         event.preventDefault();
 		if (!shaking) {
-			if (event.code === "Backspace" || event.code === "Delete") deleteLetter();
-			else if (event.code === "Enter" || event.code === "NumpadEnter") enter();
+			if (event.code === "Enter" || event.code === "NumpadEnter") enter();
 			else if (event.code === "Space") shuffle();
-			else if (hebCharsExtended.includes(event.key)) {
-				entryContent.innerText += combineCharacters(event.key);
-				validateLetters();
-			}
-			else if (event.key.length === 12) {
-				let KTE = '';
-				let done = false;
-				if (event.code === 'KeyP' || event.keyCode === 35) {
-					KTE = 'פּ';
-					done = true;
-				}
-				if (!done && event.code === 'KeyA') {
-					KTE = 'אַ';
-					done = true;
-				}
-				if (!done && event.code === 'KeyO') {
-					KTE = 'אָ';
-					done = true;
-				}
-				if (!done && event.code === 'keyB' && event.shiftKey) {
-					KTE = 'בֿ';
-					done = true;
-				}
-				if (!done && event.code === 'KeyV' && event.shiftKey) {
-					KTE = 'ו';
-					done = true;
-				}
-				if (!done && event.code === 'BracketLeft') {
-					KTE = 'י';
-					done = true;
-				}
-				if (!done && event.code === 'KeyY') {
-					KTE = 'ײַ';
-					done = true;
-				}
-				if (!done && event.code === 'KeyK' && event.shiftKey) {
-					KTE = 'כּ';
-					done = true;
-				}
-				if (!done && event.code === 'KeyF') {
-					KTE = 'פֿ';
-					done = true;
-				}
-				if (!done && event.code === 'KeyW' && event.shiftKey) {
-					KTE = 'שׂ';
-					done = true;
-				}
-				if (!done && event.code === 'KeyT' && event.shiftKey) {
-					KTE = 'תּ';
-					done = true;
-				}
-				entryContent.innerText += combineCharacters(KTE);
-				validateLetters()	
 			}
 		}
 		//else {
 		//	console.log('Key '+event.key+' of length '+event.key.length);
 		//	console.log('Keycode '+event.code);
 		//}
-    }
 };
 
 const typeLetterRestricted = (event) => {
@@ -444,12 +427,12 @@ const checkKeyPress = (event) => {
 		else if (event.code == 'Space') shuffle();
 		else if (event.key == 'ַ' || event.key == 'ָ' || event.key == 'ֿ' || event.key == 'ּ' || event.key == 'ִ') {
 			currentTypedKey += event.key;
-			entryContent.innerText = entryContent.innerText.slice(0,-1)+combineCharacters(combineCharacters(currentTypedKey));
+			entryContent.value = entryContent.value.slice(0,-1)+combineCharacters(combineCharacters(currentTypedKey));
 			validateLetters();
 		}
 		else if (hebChars.includes(event.key)) {
 			currentTypedKey = event.key;
-			entryContent.innerText += combineCharacters(combineCharacters(currentTypedKey));
+			entryContent.value += combineCharacters(combineCharacters(currentTypedKey));
 			validateLetters();
 		}
     }
@@ -459,8 +442,8 @@ const checkKeyPress = (event) => {
  * Deletes a letter from the entered word
  */
 const deleteLetter = () => {
-    if (entryContent.innerText.length > 0) {
-        entryContent.innerText = entryContent.innerText.slice(0, -1);
+    if (entryContent.value.length > 0) {
+        entryContent.value = entryContent.value.slice(0, -1);
     }
     validateLetters();
 };
@@ -469,41 +452,43 @@ const deleteLetter = () => {
  * Adds valid or invalid class to entered word field
  */
 const validateLetters = () => {
+	const regex = /[^אַָבֿגדהוּװױזחטיִײײכךלמםנןסעפףצץקרשׂתיִײַשׂאַאָוּכּפּתּבֿפֿ]/g;
+	entryContent.value = entryContent.value.replaceAll(regex,'');
 	let middleLetterOther = addFinals(middleLetter);
-	entryContent.innerText = combineCharacters(entryContent.innerText);
+	entryContent.value = combineCharacters(entryContent.value);
     entryContent.classList.remove("valid");
     entryContent.classList.remove("invalid");
-	if (entryContent.innerText.includes('ך')) {
-		entryContent.innerText = entryContent.innerText.replaceAll('ך','כ')
+	if (entryContent.value.includes('ך')) {
+		entryContent.value = entryContent.value.replaceAll('ך','כ')
 	}
-	if (entryContent.innerText.endsWith('כ')) {
-		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ך';
+	if (entryContent.value.endsWith('כ')) {
+		entryContent.value = entryContent.value.slice(0,-1) + 'ך';
 	}
-	if (entryContent.innerText.includes('ם')) {
-		entryContent.innerText = entryContent.innerText.replaceAll('ם','מ')
+	if (entryContent.value.includes('ם')) {
+		entryContent.value = entryContent.value.replaceAll('ם','מ')
 	}
-	if (entryContent.innerText.endsWith('מ')) {
-		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ם';
+	if (entryContent.value.endsWith('מ')) {
+		entryContent.value = entryContent.value.slice(0,-1) + 'ם';
 	}
-	if (entryContent.innerText.includes('ן')) {
-		entryContent.innerText = entryContent.innerText.replaceAll('ן','נ')
+	if (entryContent.value.includes('ן')) {
+		entryContent.value = entryContent.value.replaceAll('ן','נ')
 	}
-	if (entryContent.innerText.endsWith('נ')) {
-		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ן';
+	if (entryContent.value.endsWith('נ')) {
+		entryContent.value = entryContent.value.slice(0,-1) + 'ן';
 	}
-	if (entryContent.innerText.includes('ף')) {
-		entryContent.innerText = entryContent.innerText.replaceAll('ף','פֿ')
+	if (entryContent.value.includes('ף')) {
+		entryContent.value = entryContent.value.replaceAll('ף','פֿ')
 	}
-	if (entryContent.innerText.endsWith('פֿ')) {
-		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ף';
+	if (entryContent.value.endsWith('פֿ')) {
+		entryContent.value = entryContent.value.slice(0,-1) + 'ף';
 	}
-	if (entryContent.innerText.includes('ץ')) {
-		entryContent.innerText = entryContent.innerText.replaceAll('ץ','צ')
+	if (entryContent.value.includes('ץ')) {
+		entryContent.value = entryContent.value.replaceAll('ץ','צ')
 	}
-	if (entryContent.innerText.endsWith('צ')) {
-		entryContent.innerText = entryContent.innerText.slice(0,-1) + 'ץ';
+	if (entryContent.value.endsWith('צ')) {
+		entryContent.value = entryContent.value.slice(0,-1) + 'ץ';
 	}
-	if (entryContent.innerText.includes(middleLetter) || entryContent.innerText.includes(middleLetterOther)) {
+	if (entryContent.value.includes(middleLetter) || entryContent.value.includes(middleLetterOther)) {
         entryContent.classList.add("valid");
     } else {
         entryContent.classList.add("invalid");
@@ -515,7 +500,7 @@ const validateLetters = () => {
  */
 const enter = () => {
     //get word
-    const word = combineCharacters(entryContent.innerText);
+    const word = combineCharacters(entryContent.value);
     let isValid = true;
 
     //check if word is valid
@@ -599,7 +584,7 @@ const correctWord = (word) => {
 		}
 	}
     //reset entry
-    entryContent.innerText = "";
+    entryContent.value = "";
 };
 
 /**
@@ -611,7 +596,7 @@ const incorrectWord = (error) => {
 	shaking = true;
     messageBox.innerText = error;
     entryContent.addEventListener("animationend", () => {
-        entryContent.innerText = "";
+        entryContent.value = "";
         messageBox.innerText = "";
         entryContent.classList.remove("shake");
 		shaking = false;
