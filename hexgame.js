@@ -253,7 +253,7 @@ setInterval(function(){
 	focusbox = document.getElementById("entryContent");
 	dropdown = document.getElementById("whichGame");
 	const elem = document.activeElement;
-	if (elem != dropdown) focusbox.focus();
+	if (elem != dropdown && !mobile) focusbox.focus();
 });
 
 
